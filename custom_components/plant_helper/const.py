@@ -1,4 +1,4 @@
-DOMAIN = "miflora_plant"
+DOMAIN = "plant_helper"
 
 CONFIG_DEVICE = "device"
 CONFIG_PLANT = "plant"

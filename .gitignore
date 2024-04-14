@@ -9,7 +9,7 @@
 !hacs.json
 !custom_components/
 custom_components/*/
-!custom_components/miflora_plant
-custom_components/miflora_plant/photos
-custom_components/miflora_plant/database.csv
+!custom_components/plant_helper
+custom_components/plant_helper/photos
+custom_components/plant_helper/database.csv
 **/__pycache__/

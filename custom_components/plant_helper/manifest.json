@@ -1,6 +1,6 @@
 {
-  "domain": "miflora_plant",
-  "name": "Miflora-Plant",
+  "domain": "plant_helper",
+  "name": "Plant",
   "codeowners": ["@thomasloven"],
   "config_flow": true,
   "dependencies": ["plant"],
