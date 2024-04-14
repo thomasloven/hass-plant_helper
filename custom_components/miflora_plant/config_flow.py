@@ -5,48 +5,63 @@ import voluptuous as vol
 import logging
 
 from homeassistant.helpers import selector
-from homeassistant.helpers.schema_config_entry_flow import SchemaFlowFormStep, SchemaConfigFlowHandler
-from homeassistant.config_entries import ConfigFlow
+from homeassistant.config_entries import ConfigFlow, ConfigEntry, OptionsFlowWithConfigEntry
 
 from .plant_data import get_plant_options
+from .const import DOMAIN, CONFIG_DEVICE, CONFIG_PLANT, CONFIG_NAME
 
 _LOGGER = logging.getLogger(__name__)
 
-DOMAIN = "miflora_plant"
+class MiFloraOptionsFlow(OptionsFlowWithConfigEntry):
 
-OPTIONS_SCHEMA = vol.Schema(
-    {
-        vol.Required("device"): selector.DeviceSelector(
-            selector.DeviceSelectorConfig(
-                entity=selector.EntityFilterSelectorConfig(device_class=["moisture"]),
-                multiple=False
-            )
-        ),
-        vol.Optional("plant"): selector.SelectSelector(
-            selector.SelectSelectorConfig(options=get_plant_options(), mode="dropdown")
-        ),
-    }
-)
+    @staticmethod
+    def generate_options_schema(self, default=None):
+        plant_options = get_plant_options(self.hass)
+        return vol.Schema(
+            {
+                vol.Required(CONFIG_DEVICE,
+                             default=default.get(CONFIG_DEVICE) if default else None
+                            ): selector.DeviceSelector(
+                    selector.DeviceSelectorConfig(
+                        entity=selector.EntityFilterSelectorConfig(
+                            device_class=["moisture"]
+                        ),
+                        multiple=False,
+                    ),
+                ),
+                vol.Optional(CONFIG_PLANT,
+                             default=default.get(CONFIG_PLANT) if default else None
+                            ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=plant_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    ),
+                ),
+            }
+        )
 
-CONFIG_SCHEMA = vol.Schema(
-    {
-        vol.Required("name"): selector.TextSelector(),
-    }
-).extend(OPTIONS_SCHEMA.schema)
-
-CONFIG_FLOW = {
-    "user": SchemaFlowFormStep(CONFIG_SCHEMA),
-}
-
-OPTIONS_FLOW = {
-    "init": SchemaFlowFormStep(OPTIONS_SCHEMA),
-}
+    async def async_step_init(self, user_input: dict[str, Any]|None = None):
+        if user_input is not None:
+            self.options.update(user_input)
+            return self.async_create_entry(data=user_input)
+        return self.async_show_form(step_id="init", data_schema=self.generate_options_schema(self, self.config_entry.options))
 
 
-class ConfigFlowHandler(SchemaConfigFlowHandler, domain=DOMAIN):
+class MiFloraConfigFlow(ConfigFlow, domain=DOMAIN):
+    def generate_config_schema(self):
+        options_schema = MiFloraOptionsFlow.generate_options_schema(self)
+        return vol.Schema(
+            {
+                vol.Required(CONFIG_NAME): selector.TextSelector(),
+            }
+        ).extend(options_schema.schema)
 
-    config_flow = CONFIG_FLOW
-    options_flow = OPTIONS_FLOW
+    async def async_step_user(self, user_input: dict[str, Any]|None = None):
+        if user_input is not None:
+            title = cast(str, user_input[CONFIG_NAME]) if CONFIG_NAME in user_input else "New plant"
+            return self.async_create_entry(title=title, data={}, options=user_input)
 
-    def async_config_entry_title(self, options: Mapping[str, Any]) -> str:
-        return cast(str, options["name"]) if "name" in options else ""
+        return self.async_show_form(step_id="user", data_schema=self.generate_config_schema())
+
+    def async_get_options_flow(entry: ConfigEntry):
+        return MiFloraOptionsFlow(entry)

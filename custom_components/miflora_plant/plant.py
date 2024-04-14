@@ -4,29 +4,39 @@ from homeassistant.components import plant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from .plant_data import get_plant, get_photo
+from .const import CONFIG_DEVICE, CONFIG_PLANT, CONFIG_NAME
 
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass, entry, async_add_entities):
 
     registry = er.async_get(hass)
-    device_id = entry.options["device"]
+    device_id = entry.options.get(CONFIG_DEVICE)
     entities = er.async_entries_for_device(registry, device_id)
 
-    configuration = {"sensors": {}}
+    sensors = {}
+    configuration = {plant.ATTR_SENSORS: sensors}
+
     for e in entities:
         if e.original_device_class == "moisture":
-            configuration["sensors"]["moisture"] = e.entity_id
+            sensors[plant.CONF_SENSOR_MOISTURE] = e.entity_id
         if e.original_device_class == "battery":
-            configuration["sensors"]["battery"] = e.entity_id
+            sensors[plant.CONF_SENSOR_BATTERY_LEVEL] = e.entity_id
         if e.original_device_class == "temperature":
-            configuration["sensors"]["temperature"] = e.entity_id
+            sensors[plant.CONF_SENSOR_TEMPERATURE] = e.entity_id
         if e.original_name == "Conductivity":
-            configuration["sensors"]["conductivity"] = e.entity_id
+            sensors[plant.CONF_SENSOR_CONDUCTIVITY] = e.entity_id
         if e.original_device_class == "illuminance":
-            configuration["sensors"]["brightness"] = e.entity_id
+            sensors[plant.CONF_SENSOR_BRIGHTNESS] = e.entity_id
 
-    entity = MiFloraPlant(hass, entry.options["name"], configuration, entry.options.get("plant"), device_id, entry.entry_id)
+    entity = MiFloraPlant(
+        hass,
+        entry.options.get(CONFIG_NAME),
+        configuration,
+        entry.options.get(CONFIG_PLANT),
+        device_id,
+        entry.entry_id
+    )
 
     async_add_entities([entity])
 
@@ -37,18 +47,18 @@ class MiFloraPlant(plant.Plant):
 
     def __init__(self, hass, name, configuration, pid, device_id, unique_id):
         self._plant = None
-        if pid is not None and pid != "none" and (plant := get_plant(pid)) is not None:
-            self._plant = plant
-            configuration["min_moisture"] = int(plant.min_soil_moist)
-            configuration["max_moisture"] = int(plant.max_soil_moist)
-            configuration["min_conductivity"] = int(plant.min_soil_ec)
-            configuration["max_conductivity"] = int(plant.max_soil_ec)
-            configuration["min_temperature"] = int(plant.min_temp)
-            configuration["max_temperature"] = int(plant.max_temp)
-            configuration["min_brightness"] = int(plant.min_light_lux)
-            configuration["max_brightness"] = int(plant.max_light_lux)
+        if pid is not None and pid != "none" and (_plant := get_plant(hass, pid)) is not None:
+            self._plant = _plant
+            configuration[plant.CONF_MIN_MOISTURE] = int(_plant.min_soil_moist)
+            configuration[plant.CONF_MAX_MOISTURE] = int(_plant.max_soil_moist)
+            configuration[plant.CONF_MIN_CONDUCTIVITY] = int(_plant.min_soil_ec)
+            configuration[plant.CONF_MAX_CONDUCTIVITY] = int(_plant.max_soil_ec)
+            configuration[plant.CONF_MIN_TEMPERATURE] = int(_plant.min_temp)
+            configuration[plant.CONF_MAX_TEMPERATURE] = int(_plant.max_temp)
+            configuration[plant.CONF_MIN_BRIGHTNESS] = int(_plant.min_light_lux)
+            configuration[plant.CONF_MAX_BRIGHTNESS] = int(_plant.max_light_lux)
 
-            self._attr_entity_picture = get_photo(pid)
+            self._attr_entity_picture = get_photo(hass, pid)
 
         super().__init__(name, configuration)
         self._attr_unique_id = unique_id
@@ -56,7 +66,8 @@ class MiFloraPlant(plant.Plant):
         device_registry = dr.async_get(hass)
         device = device_registry.async_get(device_id)
 
-        self._attr_device_info = dr.DeviceInfo(connections=device.connections, identifiers=device.identifiers,)
+        if device:
+            self._attr_device_info = dr.DeviceInfo(connections=device.connections, identifiers=device.identifiers,)
 
     @property
     def extra_state_attributes(self):

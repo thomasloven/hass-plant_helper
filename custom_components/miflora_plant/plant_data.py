@@ -3,6 +3,11 @@ import os
 from collections import namedtuple
 import base64
 import urllib.parse
+import glob
+
+from homeassistant.core import HomeAssistant
+
+from .const import PHOTOS_URL, NONE_PLANT
 
 import logging
 _LOGGER = logging.getLogger(__name__)
@@ -41,11 +46,13 @@ PlantData = namedtuple("PlantData", [
     "min_soil_ec",
     ])
 
-def async_load_data() -> bool:
+def async_load_data(hass: HomeAssistant) -> bool:
+
     if plant_data:
         return True
-    dir = os.path.dirname(os.path.realpath(__file__))
-    csvpath = os.path.join(dir, "database.csv")
+    csvpath = get_db_path(hass)
+    if csvpath is None:
+        return False
     try:
         with open(csvpath, "r") as csvfile:
             reader = csv.reader(csvfile)
@@ -61,19 +68,29 @@ def async_load_data() -> bool:
         return False
 
 
-def get_plant(pid: str) -> PlantData:
-    if not async_load_data():
+def get_plant(hass: HomeAssistant, pid: str) -> PlantData:
+    if not async_load_data(hass):
         return None
     return plant_data.get(pid)
 
-def get_plant_options() -> list[dict]:
-    if not async_load_data():
-        return [{"value": "none", "label": "database.csv not found..."}]
+def get_plant_options(hass: HomeAssistant, ) -> list[dict]:
+    if not async_load_data(hass):
+        return [{"value": NONE_PLANT, "label": "PlantDB.csv not found..."}]
     return plant_options
 
-def get_photo(pid: str) -> str:
-    dir = os.path.dirname(os.path.realpath(__file__))
-    photopath = os.path.join(dir, "photos", f"{pid}.jpg")
-    if os.path.exists(photopath):
-        return urllib.parse.quote(f"/miflora_photos/{pid}.jpg")
+def get_photo(hass: HomeAssistant, pid: str) -> str:
+    photopath = get_photo_path(hass)
+    photo = os.path.join(photopath, f"{pid}.jpg")
+    if os.path.exists(photo):
+        return urllib.parse.quote(f"{PHOTOS_URL}/{pid}.jpg")
+    return None
+
+def get_db_path(hass: HomeAssistant) -> str | None:
+    files = glob.glob("PlantDB*.csv", root_dir=hass.config.config_dir)
+    if files: return os.path.join(hass.config.config_dir, files[0])
+    return None
+
+def get_photo_path(hass: HomeAssistant) -> str | None:
+    path = glob.glob("plant_photos", root_dir=hass.config.config_dir)
+    if path: return os.path.join(hass.config.config_dir, path[0])
     return None
