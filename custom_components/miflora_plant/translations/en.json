@@ -1,0 +1,26 @@
+{
+  "title": "Create a plant entity from a MiFLora sensor",
+  "config": {
+    "step": {
+      "user": {
+        "description": "Set up a plant entity from a monitor device",
+        "data": {
+          "name": "Name",
+          "device": "Plant Monitor",
+          "plant": "Species (optional)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "name": "Name",
+          "device": "Plant Monitor",
+          "plant": "Species (optional)"
+        }
+      }
+    }
+  }
+}

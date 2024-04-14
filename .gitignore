@@ -1,0 +1,15 @@
+/*
+/*/
+!.gitignore
+!.gitmodules
+!.github/
+!.devcontainer/
+!.vscode/
+!README.md
+!hacs.json
+!custom_components/
+custom_components/*/
+!custom_components/miflora_plant
+custom_components/miflora_plant/photos
+custom_components/miflora_plant/database.csv
+**/__pycache__/
