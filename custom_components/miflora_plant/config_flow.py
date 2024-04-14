@@ -63,28 +63,33 @@ class MiFloraOptionsFlow(OptionsFlowWithConfigEntry):
         )
 
     async def async_step_init(self, user_input: dict[str, Any]|None = None):
-        if user_input is not None:
-            self.options.update(user_input)
-            if user_input.get(CONFIG_PLANT, NONE_PLANT):
-                if CONFIG_PLANT in self.options:
-                    del self.options[CONFIG_PLANT]
-                return await self.async_step_details()
-            return self.async_create_entry(data=self.options)
-
         data_schema = self.add_suggested_values_to_schema(
             self.generate_options_schema(self),
             self.config_entry.options
         )
+
+        if user_input is not None:
+            self.options.update(user_input)
+            if user_input.get(CONFIG_PLANT, NONE_PLANT) == NONE_PLANT:
+                self.options.pop(CONFIG_PLANT, None)
+                return await self.async_step_details()
+            return self.async_create_entry(data=self.options)
+
         return self.async_show_form(step_id="init", data_schema=data_schema)
 
     async def async_step_details(self, user_input: dict[str, Any]|None = None):
-        if user_input is not None:
-            self.options.update(user_input)
-            return self.async_create_entry(data=self.options)
         data_schema = self.add_suggested_values_to_schema(
             self.generate_details_schema(self),
             self.config_entry.options
         )
+
+        if user_input is not None:
+            self.options.update(user_input)
+            for key in data_schema.schema:
+                if isinstance(key, vol.Optional) and key not in user_input:
+                    self.options.pop(key, None)
+            return self.async_create_entry(data=self.options)
+
         return self.async_show_form(step_id="details", data_schema=data_schema)
 
 class MiFloraConfigFlow(ConfigFlow, domain=DOMAIN):

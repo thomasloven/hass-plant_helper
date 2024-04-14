@@ -2,13 +2,15 @@ import logging
 
 from homeassistant.components import plant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
 
 from .plant_data import get_plant, get_photo
-from .const import CONFIG_DEVICE, CONFIG_PLANT, CONFIG_NAME
+from .const import CONFIG_DEVICE, CONFIG_PLANT, CONFIG_NAME, CONFIG_DETAILS
 
 _LOGGER = logging.getLogger(__name__)
 
-async def async_setup_entry(hass, entry, async_add_entities):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
 
     registry = er.async_get(hass)
     device_id = entry.options.get(CONFIG_DEVICE)
@@ -29,11 +31,30 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if e.original_device_class == "illuminance":
             sensors[plant.CONF_SENSOR_BRIGHTNESS] = e.entity_id
 
+    _plant = None
+    plant_picture = None
+    if (pid:=entry.options.get(CONFIG_PLANT)) and (_plant := get_plant(hass, pid)):
+        configuration[plant.CONF_MIN_MOISTURE] = int(_plant.min_soil_moist)
+        configuration[plant.CONF_MAX_MOISTURE] = int(_plant.max_soil_moist)
+        configuration[plant.CONF_MIN_CONDUCTIVITY] = int(_plant.min_soil_ec)
+        configuration[plant.CONF_MAX_CONDUCTIVITY] = int(_plant.max_soil_ec)
+        configuration[plant.CONF_MIN_TEMPERATURE] = int(_plant.min_temp)
+        configuration[plant.CONF_MAX_TEMPERATURE] = int(_plant.max_temp)
+        configuration[plant.CONF_MIN_BRIGHTNESS] = int(_plant.min_light_lux)
+        configuration[plant.CONF_MAX_BRIGHTNESS] = int(_plant.max_light_lux)
+        plant_picture = get_photo(hass, pid)
+    else:
+        for key in CONFIG_DETAILS:
+            if (value := entry.options.get(key)) is not None:
+                configuration[key] = value
+
+
     entity = MiFloraPlant(
         hass,
         entry.options.get(CONFIG_NAME),
         configuration,
-        entry.options.get(CONFIG_PLANT),
+        _plant,
+        plant_picture,
         device_id,
         entry.entry_id
     )
@@ -45,22 +66,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class MiFloraPlant(plant.Plant):
 
-    def __init__(self, hass, name, configuration, pid, device_id, unique_id):
-        self._plant = None
-        if pid is not None and pid != "none" and (_plant := get_plant(hass, pid)) is not None:
-            self._plant = _plant
-            configuration[plant.CONF_MIN_MOISTURE] = int(_plant.min_soil_moist)
-            configuration[plant.CONF_MAX_MOISTURE] = int(_plant.max_soil_moist)
-            configuration[plant.CONF_MIN_CONDUCTIVITY] = int(_plant.min_soil_ec)
-            configuration[plant.CONF_MAX_CONDUCTIVITY] = int(_plant.max_soil_ec)
-            configuration[plant.CONF_MIN_TEMPERATURE] = int(_plant.min_temp)
-            configuration[plant.CONF_MAX_TEMPERATURE] = int(_plant.max_temp)
-            configuration[plant.CONF_MIN_BRIGHTNESS] = int(_plant.min_light_lux)
-            configuration[plant.CONF_MAX_BRIGHTNESS] = int(_plant.max_light_lux)
-
-            self._attr_entity_picture = get_photo(hass, pid)
-
+    def __init__(self, hass, name, configuration, _plant, picture, device_id, unique_id):
         super().__init__(name, configuration)
+
+        self._plant = _plant
+        self._attr_entity_picture = picture
         self._attr_unique_id = unique_id
 
         device_registry = dr.async_get(hass)
