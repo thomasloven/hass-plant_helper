@@ -8,20 +8,25 @@ from homeassistant.helpers import selector
 from homeassistant.config_entries import ConfigFlow, ConfigEntry, OptionsFlowWithConfigEntry
 
 from .plant_data import get_plant_options
-from .const import DOMAIN, CONFIG_DEVICE, CONFIG_PLANT, CONFIG_NAME
+from .const import DOMAIN, CONFIG_DEVICE, CONFIG_PLANT, CONFIG_NAME, CONFIG_DETAILS, NONE_PLANT
 
 _LOGGER = logging.getLogger(__name__)
 
 class MiFloraOptionsFlow(OptionsFlowWithConfigEntry):
 
+
     @staticmethod
-    def generate_options_schema(self, default=None):
+    def generate_options_schema(self):
         plant_options = get_plant_options(self.hass)
+        if not plant_options:
+            plant_options = [{
+                "value": NONE_PLANT,
+                "label": "PlantDB.csv not found..."
+            }]
+
         return vol.Schema(
             {
-                vol.Required(CONFIG_DEVICE,
-                             default=default.get(CONFIG_DEVICE) if default else None
-                            ): selector.DeviceSelector(
+                vol.Required(CONFIG_DEVICE): selector.DeviceSelector(
                     selector.DeviceSelectorConfig(
                         entity=selector.EntityFilterSelectorConfig(
                             device_class=["moisture"]
@@ -29,9 +34,7 @@ class MiFloraOptionsFlow(OptionsFlowWithConfigEntry):
                         multiple=False,
                     ),
                 ),
-                vol.Optional(CONFIG_PLANT,
-                             default=default.get(CONFIG_PLANT) if default else None
-                            ): selector.SelectSelector(
+                vol.Optional(CONFIG_PLANT): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=plant_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
@@ -40,12 +43,49 @@ class MiFloraOptionsFlow(OptionsFlowWithConfigEntry):
             }
         )
 
+    @staticmethod
+    def generate_details_schema(self):
+
+        def _key(option: str) -> vol.Optional:
+            return vol.Optional(option)
+
+        def _value() -> selector.NumberSelector:
+            return selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    max=100000,
+                    mode="box",
+                )
+            )
+
+        return vol.Schema(
+            { _key(o): _value() for o in CONFIG_DETAILS}
+        )
+
     async def async_step_init(self, user_input: dict[str, Any]|None = None):
         if user_input is not None:
             self.options.update(user_input)
-            return self.async_create_entry(data=user_input)
-        return self.async_show_form(step_id="init", data_schema=self.generate_options_schema(self, self.config_entry.options))
+            if user_input.get(CONFIG_PLANT, NONE_PLANT):
+                if CONFIG_PLANT in self.options:
+                    del self.options[CONFIG_PLANT]
+                return await self.async_step_details()
+            return self.async_create_entry(data=self.options)
 
+        data_schema = self.add_suggested_values_to_schema(
+            self.generate_options_schema(self),
+            self.config_entry.options
+        )
+        return self.async_show_form(step_id="init", data_schema=data_schema)
+
+    async def async_step_details(self, user_input: dict[str, Any]|None = None):
+        if user_input is not None:
+            self.options.update(user_input)
+            return self.async_create_entry(data=self.options)
+        data_schema = self.add_suggested_values_to_schema(
+            self.generate_details_schema(self),
+            self.config_entry.options
+        )
+        return self.async_show_form(step_id="details", data_schema=data_schema)
 
 class MiFloraConfigFlow(ConfigFlow, domain=DOMAIN):
     def generate_config_schema(self):

@@ -73,9 +73,9 @@ def get_plant(hass: HomeAssistant, pid: str) -> PlantData:
         return None
     return plant_data.get(pid)
 
-def get_plant_options(hass: HomeAssistant, ) -> list[dict]:
+def get_plant_options(hass: HomeAssistant, ) -> list[dict] | None:
     if not async_load_data(hass):
-        return [{"value": NONE_PLANT, "label": "PlantDB.csv not found..."}]
+        return None
     return plant_options
 
 def get_photo(hass: HomeAssistant, pid: str) -> str:

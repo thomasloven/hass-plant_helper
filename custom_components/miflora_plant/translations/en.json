@@ -20,6 +20,18 @@
           "device": "Plant Monitor",
           "plant": "Species (optional)"
         }
+      },
+      "details": {
+        "data": {
+          "min_moisture": "Moisture min (%)",
+          "max_moisture": "Moisture max (%)",
+          "min_conductivity": "Soil conductivity min (uS/cm)",
+          "max_conductivity": "Soil conductivity max (uS/cm)",
+          "min_temperature": "Temperture min (°C)",
+          "max_temperature": "Temperture max (°C)",
+          "min_brightness": "Brightness min (lux)",
+          "max_brightness": "Brightness max (lux)"
+        }
       }
     }
   }
