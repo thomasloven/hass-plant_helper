@@ -78,8 +78,9 @@ def get_plant_options(hass: HomeAssistant, ) -> list[dict] | None:
         return None
     return plant_options
 
-def get_photo(hass: HomeAssistant, pid: str) -> str:
-    photopath = get_photo_path(hass)
+def get_photo(hass: HomeAssistant, pid: str) -> str | None:
+    if (photopath := get_photo_path(hass)) is None:
+        return None
     photo = os.path.join(photopath, f"{pid}.jpg")
     if os.path.exists(photo):
         return urllib.parse.quote(f"{PHOTOS_URL}/{pid}.jpg")
