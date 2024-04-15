@@ -33,6 +33,8 @@ For copyright reasons, I cannot include the database in this repository, but it'
 
 ## Usage:
 
+- **IMPORTANT!** Since the plant entity essentially hasn't been updated by Home Assistant in seven years, it's a bit buggy. Therefore in order for this to work, you must add `plant:` to your configuration.yaml manually. Just that single line will do - and I'll do my best to fix this.
+
 - Make sure you have at least one MiFlora Device set up and working. Going to the device settings you should see something like this:
 
 ![default device entities](https://github.com/thomasloven/hass-plant_helper/assets/1299821/5c031db8-a9bf-471d-8230-6195ed71d89a)
