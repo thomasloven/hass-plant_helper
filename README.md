@@ -1,4 +1,6 @@
-# Helper for creating plant entities from MiFlora devices
+# Plant Helper
+
+Helper for creating plant entities from MiFlora devices
 
 ## Summary
 
