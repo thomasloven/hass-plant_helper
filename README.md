@@ -1,5 +1,7 @@
 # Plant Helper
 
+# WARNING: This is considered a beta version - expect significant functional and breaking changes
+
 Helper for creating plant entities from MiFlora devices
 
 ## Summary
