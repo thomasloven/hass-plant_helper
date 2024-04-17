@@ -176,6 +176,8 @@ class PlantBinarySensor(BinarySensorEntity):
         if self._brightness_history.max is not None:
             attrib[ATTR_MAX_BRIGHTNESS_HISTORY] = self._brightness_history.max
 
+        attrib["problems"] = self.problems
+
         return attrib
 
     def _state_changed(self, entity: str, new_state: State|None):
