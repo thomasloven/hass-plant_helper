@@ -6,14 +6,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
 from .plant_data import get_plant, get_photo
-from .const import CONFIG_DEVICE, CONFIG_PLANT, CONFIG_NAME, CONFIG_DETAILS
+from .const import CONF_DEVICE, CONF_PLANT, CONF_NAME, CONFIG_DETAILS
 
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
 
     registry = er.async_get(hass)
-    device_id = entry.options.get(CONFIG_DEVICE)
+    device_id = entry.options.get(CONF_DEVICE)
     entities = er.async_entries_for_device(registry, device_id)
 
     sensors = {}
@@ -33,7 +33,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     _plant = None
     plant_picture = None
-    if (pid:=entry.options.get(CONFIG_PLANT)) and (_plant := get_plant(hass, pid)):
+    if (pid:=entry.options.get(CONF_PLANT)) and (_plant := get_plant(hass, pid)):
         configuration[plant.CONF_MIN_MOISTURE] = int(_plant.min_soil_moist)
         configuration[plant.CONF_MAX_MOISTURE] = int(_plant.max_soil_moist)
         configuration[plant.CONF_MIN_CONDUCTIVITY] = int(_plant.min_soil_ec)
@@ -51,7 +51,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     entity = MiFloraPlant(
         hass,
-        entry.options.get(CONFIG_NAME),
+        entry.options.get(CONF_NAME),
         configuration,
         _plant,
         plant_picture,

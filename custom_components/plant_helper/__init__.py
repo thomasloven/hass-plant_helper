@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
-    await hass.config_entries.async_forward_entry_setups(entry, ("plant",))
+    await hass.config_entries.async_forward_entry_setups(entry, ("plant","binary_sensor"))
 
     photopath = get_photo_path(hass)
     if photopath and os.path.isdir(photopath):

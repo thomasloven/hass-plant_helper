@@ -8,7 +8,7 @@ from homeassistant.helpers import selector
 from homeassistant.config_entries import ConfigFlow, ConfigEntry, OptionsFlowWithConfigEntry
 
 from .plant_data import get_plant_options
-from .const import DOMAIN, CONFIG_DEVICE, CONFIG_PLANT, CONFIG_NAME, CONFIG_DETAILS, NONE_PLANT
+from .const import DOMAIN, CONF_DEVICE, CONF_PLANT, CONF_NAME, CONFIG_DETAILS, NONE_PLANT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class MiFloraOptionsFlow(OptionsFlowWithConfigEntry):
 
         return vol.Schema(
             {
-                vol.Required(CONFIG_DEVICE): selector.DeviceSelector(
+                vol.Required(CONF_DEVICE): selector.DeviceSelector(
                     selector.DeviceSelectorConfig(
                         entity=selector.EntityFilterSelectorConfig(
                             device_class=["moisture"]
@@ -34,7 +34,7 @@ class MiFloraOptionsFlow(OptionsFlowWithConfigEntry):
                         multiple=False,
                     ),
                 ),
-                vol.Optional(CONFIG_PLANT): selector.SelectSelector(
+                vol.Optional(CONF_PLANT): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=plant_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
@@ -70,8 +70,8 @@ class MiFloraOptionsFlow(OptionsFlowWithConfigEntry):
 
         if user_input is not None:
             self.options.update(user_input)
-            if user_input.get(CONFIG_PLANT, NONE_PLANT) == NONE_PLANT:
-                self.options.pop(CONFIG_PLANT, None)
+            if user_input.get(CONF_PLANT, NONE_PLANT) == NONE_PLANT:
+                self.options.pop(CONF_PLANT, None)
                 return await self.async_step_details()
             return self.async_create_entry(data=self.options)
 
@@ -97,13 +97,13 @@ class MiFloraConfigFlow(ConfigFlow, domain=DOMAIN):
         options_schema = MiFloraOptionsFlow.generate_options_schema(self)
         return vol.Schema(
             {
-                vol.Required(CONFIG_NAME): selector.TextSelector(),
+                vol.Required(CONF_NAME): selector.TextSelector(),
             }
         ).extend(options_schema.schema)
 
     async def async_step_user(self, user_input: dict[str, Any]|None = None):
         if user_input is not None:
-            title = cast(str, user_input[CONFIG_NAME]) if CONFIG_NAME in user_input else "New plant"
+            title = cast(str, user_input[CONF_NAME]) if CONF_NAME in user_input else "New plant"
             return self.async_create_entry(title=title, data={}, options=user_input)
 
         return self.async_show_form(step_id="user", data_schema=self.generate_config_schema())
