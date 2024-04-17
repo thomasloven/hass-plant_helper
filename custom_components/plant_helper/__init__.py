@@ -5,7 +5,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.frontend import add_extra_js_url
 
-from . import patch_plant
 from .const import PHOTOS_URL
 from .plant_data import get_photo_path
 
@@ -20,7 +19,7 @@ async def async_setup(hass: HomeAssistant, _) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
-    await hass.config_entries.async_forward_entry_setups(entry, ("plant","binary_sensor"))
+    await hass.config_entries.async_forward_entry_setups(entry, ("binary_sensor",))
 
     photopath = get_photo_path(hass)
     if photopath and os.path.isdir(photopath):

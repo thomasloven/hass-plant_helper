@@ -36,14 +36,15 @@ NONE_PLANT = "none"
 PHOTOS_URL = "/miflora_photos"
 
 CONFIG_DETAILS = [
-  "min_moisture",
-  "max_moisture",
-  "min_conductivity",
-  "max_conductivity",
-  "min_temperature",
-  "max_temperature",
-  "min_brightness",
-  "max_brightness"
+  CONF_MIN_MOISTURE,
+  CONF_MAX_MOISTURE,
+  CONF_MIN_CONDUCTIVITY,
+  CONF_MAX_CONDUCTIVITY,
+  CONF_MIN_TEMPERATURE,
+  CONF_MAX_TEMPERATURE,
+  CONF_MIN_BRIGHTNESS,
+  CONF_MAX_BRIGHTNESS,
+  CONF_MIN_BATTERY_LEVEL,
 ]
 
 ATTR_PROBLEM = "problem"

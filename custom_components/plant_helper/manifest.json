@@ -1,12 +1,12 @@
 {
   "domain": "plant_helper",
-  "name": "Plant",
+  "name": "Plant Helper",
   "codeowners": ["@thomasloven"],
   "config_flow": true,
-  "dependencies": ["plant"],
-  "documentation": "https://github.com/thomasloven/hass_miflora-plant",
+  "dependencies": [],
+  "documentation": "https://github.com/thomasloven/hass-plant_helper",
   "integration_type": "helper",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/thomasloven/hass_miflora-plant/issues",
-  "version": "0.0.1"
+  "issue_tracker": "https://github.com/thomasloven/hass-plant_helper/issues",
+  "version": "0.0.2"
 }

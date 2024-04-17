@@ -1,9 +1,9 @@
 {
-  "title": "Create a plant entity from a MiFLora sensor",
+  "title": "Helper for monitoring plants with MiFlora plant sensors",
   "config": {
     "step": {
       "user": {
-        "description": "Set up a plant entity from a monitor device",
+        "description": "Set up a plant sensor",
         "data": {
           "name": "Name",
           "device": "Plant Monitor",
@@ -30,7 +30,8 @@
           "min_temperature": "Temperture min (°C)",
           "max_temperature": "Temperture max (°C)",
           "min_brightness": "Brightness min (lux)",
-          "max_brightness": "Brightness max (lux)"
+          "max_brightness": "Brightness max (lux)",
+          "min_battery": "Battery level min (%)"
         }
       }
     }
