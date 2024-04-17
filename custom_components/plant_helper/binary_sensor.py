@@ -109,7 +109,8 @@ async def async_setup_entry(
 
 class PlantBinarySensor(BinarySensorEntity):
 
-    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_device_class = "plant" #BinarySensorDeviceClass.PROBLEM
+    _attr_supported_features = 1
 
     def __init__(self, hass, name:str, rules: dict[str: PlantRule],
                  device_id: str,
@@ -126,6 +127,7 @@ class PlantBinarySensor(BinarySensorEntity):
 
         self._check_days = 3
         self._brightness_history = DailyHistory(self._check_days)
+        self._actual_brightness = None
 
         # Connect to original device
         device_registry = dr.async_get(hass)
@@ -167,6 +169,10 @@ class PlantBinarySensor(BinarySensorEntity):
             **self.values
         }
 
+        # TODO: Remove when card has been fixed
+        if self._actual_brightness is not None:
+            attrib["brightness"] = self._actual_brightness
+
         if self._brightness_history.max is not None:
             attrib[ATTR_MAX_BRIGHTNESS_HISTORY] = self._brightness_history.max
 
@@ -187,6 +193,7 @@ class PlantBinarySensor(BinarySensorEntity):
         if reading == READING_BRIGHTNESS:
             # For brightness, continue with the maximum value over the past few days
             self._brightness_history.add_measurement(value, new_state.last_updated)
+            self._actual_brightness = value
             value = self._brightness_history.max
 
         self.values[reading] = value

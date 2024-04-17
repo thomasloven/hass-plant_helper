@@ -3,6 +3,7 @@ import os
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.frontend import add_extra_js_url
 
 from . import patch_plant
 from .const import PHOTOS_URL
@@ -10,6 +11,12 @@ from .plant_data import get_photo_path
 
 _LOGGER = logging.getLogger(__name__)
 
+async def async_setup(hass: HomeAssistant, _) -> bool:
+    JS_PATCH_URL = "/patch_plant_card.js"
+    js_patch_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "patch_plant_card.js")
+    hass.http.register_static_path(JS_PATCH_URL, js_patch_path)
+    add_extra_js_url(hass, JS_PATCH_URL)
+    return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
