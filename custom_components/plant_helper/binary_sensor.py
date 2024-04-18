@@ -230,8 +230,6 @@ class CustomPlantBinarySensor(PlantBinarySensor):
                     "unit": e.unit_of_measurement,
                 }
 
-        _LOGGER.error(f"Custom sensor {rules=}")
-
         super().__init__(hass, name, rules)
 
 class MiFloraPlantBinarySensor(PlantBinarySensor):
@@ -239,7 +237,7 @@ class MiFloraPlantBinarySensor(PlantBinarySensor):
         device_id = config.get(CONF_DEVICE)
         rules = defaultdict(PlantRule)
 
-        plant = get_plant(hass, pid)
+        self.plant = plant = get_plant(hass, pid)
         if plant is None:
             pass
 
@@ -281,11 +279,30 @@ class MiFloraPlantBinarySensor(PlantBinarySensor):
                     "unit": e.unit_of_measurement,
                 }
 
-        _LOGGER.error(f"Miflora sensor {rules=}")
-
         super().__init__(hass, name, rules)
 
         self._attr_entity_picture = get_photo(hass, pid)
+
+    @property
+    def extra_state_attributes(self):
+        attrib = super().extra_state_attributes
+
+        if (plant := self.plant) is not None:
+            attrib["species"] = plant.display_pid
+            attrib["description"] = plant.floral_language
+            attrib["origin"] = plant.origin
+            attrib["production"] = plant.production
+            attrib["category"] = plant.category
+            attrib["blooming"] = plant.blooming
+            attrib["color"] = plant.color
+            attrib["size"] = plant.size
+            attrib["soil"] = plant.soil
+            attrib["sunlight"] = plant.sunlight
+            attrib["watering"] = plant.watering
+            attrib["fertilization"] = plant.fertilization
+            attrib["pruning"] = plant.pruning
+
+        return attrib
 
 class DailyHistory:
     """Stores one measurement per day for a maximum number of days.
