@@ -1,5 +1,15 @@
 {
   "title": "Helper for monitoring plants with MiFlora plant sensors",
+  "entity": {
+    "binary_sensor": {
+      "plant": {
+        "state": {
+          "on": "Problem",
+          "off": "No problem"
+        }
+      }
+    }
+  },
   "config": {
     "step": {
       "user": {

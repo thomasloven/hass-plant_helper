@@ -57,6 +57,7 @@ class PlantBinarySensor(BinarySensorEntity):
 
     _attr_device_class = "plant" #BinarySensorDeviceClass.PROBLEM
     _attr_supported_features = 1
+    _attr_translation_key = "plant"
 
     def __init__(self, hass: HomeAssistant, name: str, rules: dict[str: PlantRule]):
         super().__init__()
@@ -93,7 +94,7 @@ class PlantBinarySensor(BinarySensorEntity):
 
     @property
     def is_on(self):
-        return any(self.problems.values())
+        return any((v is not PROBLEM_NONE for v in self.problems.values()))
 
     @property
     def extra_state_attributes(self):

@@ -1,0 +1,12 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "plant": {
+        "state": {
+          "on": "mdi:flower",
+          "off": "mdi:flower-outline"
+        }
+      }
+    }
+  }
+}
