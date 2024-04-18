@@ -4,12 +4,12 @@ from contextlib import suppress
 import logging
 import datetime
 
-from homeassistant.core import HomeAssistant, callback, Event, EventStateChangedData, State
+from homeassistant.core import HomeAssistant, callback, Event, State
 from homeassistant.const import STATE_UNKNOWN, STATE_UNAVAILABLE, CONDUCTIVITY
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.event import async_track_state_change_event, EventStateChangedData
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.util import dt as dt_util
 from homeassistant.components.recorder import history, get_instance
