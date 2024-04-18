@@ -8,6 +8,22 @@
           "name": "Name",
           "device": "Plant Monitor",
           "plant": "Species (optional)"
+        },
+        "data_description": {
+          "plant": "Leave blank to set up limits manually"
+        }
+      },
+      "details": {
+        "data": {
+          "min_moisture": "Moisture min (%)",
+          "max_moisture": "Moisture max (%)",
+          "min_conductivity": "Soil conductivity min (uS/cm)",
+          "max_conductivity": "Soil conductivity max (uS/cm)",
+          "min_temperature": "Temperture min (°C)",
+          "max_temperature": "Temperture max (°C)",
+          "min_brightness": "Brightness min (lux)",
+          "max_brightness": "Brightness max (lux)",
+          "min_battery": "Battery level min (%)"
         }
       }
     }
@@ -19,6 +35,9 @@
           "name": "Name",
           "device": "Plant Monitor",
           "plant": "Species (optional)"
+        },
+        "data_description": {
+          "plant": "Leave blank to set up limits manually"
         }
       },
       "details": {

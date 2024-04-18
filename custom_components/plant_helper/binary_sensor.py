@@ -15,7 +15,7 @@ from homeassistant.util import dt as dt_util
 from homeassistant.components.recorder import history, get_instance
 from homeassistant.components.sensor import SensorDeviceClass
 
-from .plant_data import get_plant, get_photo
+from .plant_data import get_plant, get_photo, PlantData
 
 from .const import *
 
@@ -33,75 +33,21 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ):
-    registry = er.async_get(hass)
+    pid = entry.options.get(CONF_PLANT)
     device_id = entry.options.get(CONF_DEVICE)
-    entities = er.async_entries_for_device(registry, device_id)
 
-    rules = defaultdict(PlantRule)
+    if pid is not None:
+        entity = MiFloraPlantBinarySensor(hass, entry.options.get(CONF_NAME), entry.options, pid)
+    else:
+        entity = CustomPlantBinarySensor(hass, entry.options.get(CONF_NAME), entry.options)
 
-    for e in entities:
-        if e.original_device_class == SensorDeviceClass.MOISTURE:
-            rules[READING_MOISTURE] = {
-                "entity": e.entity_id,
-                "min": entry.options.get(CONF_MIN_MOISTURE, DEFAULT_MIN_MOISTURE),
-                "max": entry.options.get(CONF_MAX_MOISTURE, DEFAULT_MAX_MOISTURE),
-                "unit": e.unit_of_measurement,
-            }
-        if e.original_device_class == SensorDeviceClass.BATTERY:
-            rules[READING_BATTERY] = {
-                "entity": e.entity_id,
-                "min": entry.options.get(CONF_MIN_BATTERY_LEVEL, DEFAULT_MIN_BATTERY_LEVEL),
-                "unit": e.unit_of_measurement,
-            }
-        if e.original_device_class == SensorDeviceClass.TEMPERATURE:
-            rules[READING_TEMPERATURE] = {
-                "entity": e.entity_id,
-                "min": entry.options.get(CONF_MIN_TEMPERATURE),
-                "max": entry.options.get(CONF_MAX_TEMPERATURE),
-                "unit": e.unit_of_measurement,
-            }
-        if e.unit_of_measurement == CONDUCTIVITY:
-            rules[READING_CONDUCTIVITY] = {
-                "entity": e.entity_id,
-                "min": entry.options.get(CONF_MIN_CONDUCTIVITY, DEFAULT_MIN_CONDUCTIVITY),
-                "max": entry.options.get(CONF_MAX_CONDUCTIVITY, DEFAULT_MAX_CONDUCTIVITY),
-                "unit": e.unit_of_measurement,
-            }
-        if e.original_device_class == SensorDeviceClass.ILLUMINANCE:
-            rules[READING_BRIGHTNESS] = {
-                "entity": e.entity_id,
-                "min": entry.options.get(CONF_MIN_BRIGHTNESS),
-                "max": entry.options.get(CONF_MAX_BRIGHTNESS),
-                "unit": e.unit_of_measurement,
-            }
+    entity._attr_unique_id = entry.entry_id
+    # Connect to original device
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get(device_id)
+    if device:
+        entity._attr_device_info = dr.DeviceInfo(connections=device.connections, identifiers=device.identifiers,)
 
-    # MiFlora specific
-    plant = None
-    entity_picture = None
-    if (pid:=entry.options.get(CONF_PLANT)) and (plant := get_plant(hass, pid)):
-        rules[READING_MOISTURE]["min"] = int(plant.min_soil_moist)
-        rules[READING_MOISTURE]["max"] = int(plant.max_soil_moist)
-        rules[READING_CONDUCTIVITY]["min"] = int(plant.min_soil_ec)
-        rules[READING_CONDUCTIVITY]["max"] = int(plant.max_soil_ec)
-        rules[READING_TEMPERATURE]["min"] = int(plant.min_temp)
-        rules[READING_TEMPERATURE]["max"] = int(plant.max_temp)
-        rules[READING_BRIGHTNESS]["min"] = int(plant.min_light_lux)
-        rules[READING_BRIGHTNESS]["max"] = int(plant.max_light_lux)
-        entity_picture = get_photo(hass, pid)
-        rules = {reading: rule for reading, rule in rules.items() if rule.get("entity")}
-
-
-    entity = PlantBinarySensor(
-        hass,
-        entry.options.get(CONF_NAME),
-        rules,
-
-        device_id,
-        entry.entry_id,
-    )
-
-    # MiFlora specific
-    entity._attr_entity_picture = entity_picture
 
     async_add_entities([entity])
     return True
@@ -112,13 +58,10 @@ class PlantBinarySensor(BinarySensorEntity):
     _attr_device_class = "plant" #BinarySensorDeviceClass.PROBLEM
     _attr_supported_features = 1
 
-    def __init__(self, hass, name:str, rules: dict[str: PlantRule],
-                 device_id: str,
-                 unique_id: str):
+    def __init__(self, hass: HomeAssistant, name: str, rules: dict[str: PlantRule]):
         super().__init__()
         self.hass = hass
         self._attr_name: str = name
-        self._attr_unique_id = unique_id
 
         self.rules: dict[str, PlantRule] = rules
 
@@ -129,11 +72,6 @@ class PlantBinarySensor(BinarySensorEntity):
         self._brightness_history = DailyHistory(self._check_days)
         self._actual_brightness = None
 
-        # Connect to original device
-        device_registry = dr.async_get(hass)
-        device = device_registry.async_get(device_id)
-        if device:
-            self._attr_device_info = dr.DeviceInfo(connections=device.connections, identifiers=device.identifiers,)
 
     def _check_state(self) -> None:
         problems = self.problems
@@ -248,6 +186,105 @@ class PlantBinarySensor(BinarySensorEntity):
 
         _LOGGER.debug("Initializing from database completed")
 
+class CustomPlantBinarySensor(PlantBinarySensor):
+    def __init__(self, hass: HomeAssistant, name: str, config: dict[str, Any]):
+        device_id = config.get(CONF_DEVICE)
+        rules = defaultdict(PlantRule)
+
+        registry = er.async_get(hass)
+        entities = er.async_entries_for_device(registry, device_id)
+        for e in entities:
+            if e.original_device_class == SensorDeviceClass.MOISTURE:
+                rules[READING_MOISTURE] = {
+                    "entity": e.entity_id,
+                    "min": config.get(CONF_MIN_MOISTURE),
+                    "max": config.get(CONF_MAX_MOISTURE),
+                    "unit": e.unit_of_measurement,
+                }
+            if e.original_device_class == SensorDeviceClass.BATTERY:
+                rules[READING_BATTERY] = {
+                    "entity": e.entity_id,
+                    "min": config.get(CONF_MIN_BATTERY_LEVEL),
+                    "unit": e.unit_of_measurement,
+                }
+            if e.original_device_class == SensorDeviceClass.TEMPERATURE:
+                rules[READING_TEMPERATURE] = {
+                    "entity": e.entity_id,
+                    "min": config.get(CONF_MIN_TEMPERATURE),
+                    "max": config.get(CONF_MAX_TEMPERATURE),
+                    "unit": e.unit_of_measurement,
+                }
+            if e.unit_of_measurement == CONDUCTIVITY:
+                rules[READING_CONDUCTIVITY] = {
+                    "entity": e.entity_id,
+                    "min": config.get(CONF_MIN_CONDUCTIVITY),
+                    "max": config.get(CONF_MAX_CONDUCTIVITY),
+                    "unit": e.unit_of_measurement,
+                }
+            if e.original_device_class == SensorDeviceClass.ILLUMINANCE:
+                rules[READING_BRIGHTNESS] = {
+                    "entity": e.entity_id,
+                    "min": config.get(CONF_MIN_BRIGHTNESS),
+                    "max": config.get(CONF_MAX_BRIGHTNESS),
+                    "unit": e.unit_of_measurement,
+                }
+
+        _LOGGER.error(f"Custom sensor {rules=}")
+
+        super().__init__(hass, name, rules)
+
+class MiFloraPlantBinarySensor(PlantBinarySensor):
+    def __init__(self, hass: HomeAssistant, name: str, config: dict[str, Any], pid: str):
+        device_id = config.get(CONF_DEVICE)
+        rules = defaultdict(PlantRule)
+
+        plant = get_plant(hass, pid)
+        if plant is None:
+            pass
+
+        registry = er.async_get(hass)
+        entities = er.async_entries_for_device(registry, device_id)
+        for e in entities:
+            if e.original_device_class == SensorDeviceClass.MOISTURE:
+                rules[READING_MOISTURE] = {
+                    "entity": e.entity_id,
+                    "min": int(plant.min_soil_moist),
+                    "max": int(plant.max_soil_moist),
+                    "unit": e.unit_of_measurement,
+                }
+            if e.original_device_class == SensorDeviceClass.BATTERY:
+                rules[READING_BATTERY] = {
+                    "entity": e.entity_id,
+                    "min": config.get(CONF_MIN_BATTERY_LEVEL, DEFAULT_MIN_BATTERY_LEVEL),
+                    "unit": e.unit_of_measurement,
+                }
+            if e.original_device_class == SensorDeviceClass.TEMPERATURE:
+                rules[READING_TEMPERATURE] = {
+                    "entity": e.entity_id,
+                    "min": int(plant.min_temp),
+                    "max": int(plant.max_temp),
+                    "unit": e.unit_of_measurement,
+                }
+            if e.unit_of_measurement == CONDUCTIVITY:
+                rules[READING_CONDUCTIVITY] = {
+                    "entity": e.entity_id,
+                    "min": int(plant.min_soil_ec),
+                    "max": int(plant.max_soil_ec),
+                    "unit": e.unit_of_measurement,
+                }
+            if e.original_device_class == SensorDeviceClass.ILLUMINANCE:
+                rules[READING_BRIGHTNESS] = {
+                    "entity": e.entity_id,
+                    "min": int(plant.min_light_lux),
+                    "max": int(plant.max_light_lux),
+                    "unit": e.unit_of_measurement,
+                }
+
+        _LOGGER.error(f"Miflora sensor {rules=}")
+
+        super().__init__(hass, name, rules)
+
+        self._attr_entity_picture = get_photo(hass, pid)
 
 class DailyHistory:
     """Stores one measurement per day for a maximum number of days.
@@ -281,7 +318,9 @@ class DailyHistory:
     @property
     def max(self):
         """Return the maximum value in the history."""
-        return max(self._max_dict.values())
+        if self._max_dict:
+            return max(self._max_dict.values())
+        return 0
 
     def _add_day(self, day:datetime.date, value:int|float):
         """Add a new day to the history.

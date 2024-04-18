@@ -9,11 +9,11 @@ from homeassistant.config_entries import ConfigFlow, ConfigEntry, OptionsFlowWit
 
 from .plant_data import get_plant_options
 from .const import DOMAIN, CONF_DEVICE, CONF_PLANT, CONF_NAME, CONFIG_DETAILS, NONE_PLANT
+from .const import *
 
 _LOGGER = logging.getLogger(__name__)
 
 class MiFloraOptionsFlow(OptionsFlowWithConfigEntry):
-
 
     @staticmethod
     def generate_options_schema(self):
@@ -73,24 +73,27 @@ class MiFloraOptionsFlow(OptionsFlowWithConfigEntry):
             if user_input.get(CONF_PLANT, NONE_PLANT) == NONE_PLANT:
                 self.options.pop(CONF_PLANT, None)
                 return await self.async_step_details()
+
             return self.async_create_entry(data=self.options)
 
         return self.async_show_form(step_id="init", data_schema=data_schema)
 
     async def async_step_details(self, user_input: dict[str, Any]|None = None):
-        data_schema = self.add_suggested_values_to_schema(
+        """Options for custom limits"""
+        details_schema = self.add_suggested_values_to_schema(
             self.generate_details_schema(self),
             self.config_entry.options
         )
 
         if user_input is not None:
             self.options.update(user_input)
-            for key in data_schema.schema:
+            for key in details_schema.schema:
                 if isinstance(key, vol.Optional) and key not in user_input:
                     self.options.pop(key, None)
             return self.async_create_entry(data=self.options)
 
-        return self.async_show_form(step_id="details", data_schema=data_schema)
+        return self.async_show_form(step_id="details", data_schema=details_schema)
+
 
 class MiFloraConfigFlow(ConfigFlow, domain=DOMAIN):
     def generate_config_schema(self):
@@ -103,10 +106,42 @@ class MiFloraConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any]|None = None):
         if user_input is not None:
-            title = cast(str, user_input[CONF_NAME]) if CONF_NAME in user_input else "New plant"
-            return self.async_create_entry(title=title, data={}, options=user_input)
+            self.options = user_input
+            if user_input.get(CONF_PLANT, NONE_PLANT) == NONE_PLANT:
+                self.options.pop(CONF_PLANT, None)
+                return await self.async_step_details()
+
+            return self.async_create_entry(
+                title=cast(str, self.options.get(CONF_NAME, "New Plant")),
+                data={},
+                options=user_input
+                )
 
         return self.async_show_form(step_id="user", data_schema=self.generate_config_schema())
+
+    async def async_step_details(self, user_input: dict[str, Any]|None = None):
+        """Config for custom limits"""
+        details_schema = MiFloraOptionsFlow.generate_details_schema(self)
+        details_schema = self.add_suggested_values_to_schema(
+            MiFloraOptionsFlow.generate_details_schema(self),
+            {
+                CONF_MIN_MOISTURE: DEFAULT_MIN_MOISTURE,
+                CONF_MAX_MOISTURE: DEFAULT_MAX_MOISTURE,
+                CONF_MIN_CONDUCTIVITY: DEFAULT_MIN_CONDUCTIVITY,
+                CONF_MAX_CONDUCTIVITY: DEFAULT_MAX_CONDUCTIVITY,
+                CONF_MIN_BATTERY_LEVEL: DEFAULT_MIN_BATTERY_LEVEL,
+            }
+        )
+
+        if user_input is not None:
+            self.options.update(user_input)
+            return self.async_create_entry(
+                title=cast(str, self.options.get(CONF_NAME, "New Plant")),
+                data={},
+                options=self.options
+                )
+
+        return self.async_show_form(step_id="details", data_schema=details_schema)
 
     def async_get_options_flow(entry: ConfigEntry):
         return MiFloraOptionsFlow(entry)
