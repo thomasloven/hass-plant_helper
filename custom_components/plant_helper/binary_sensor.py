@@ -81,7 +81,7 @@ class PlantBinarySensor(BinarySensorEntity):
                 continue
             if value == STATE_UNAVAILABLE:
                 problems[reading] = "unavailable"
-            if value == STATE_UNKNOWN:
+            elif value == STATE_UNKNOWN:
                 problems[reading] = "unknown"
             elif (min_val := rule.get("min")) is not None and value < min_val:
                 problems[reading] = "low"
@@ -90,7 +90,7 @@ class PlantBinarySensor(BinarySensorEntity):
             else:
                 problems[reading] = PROBLEM_NONE
 
-        self.async_write_ha_state()
+        self.schedule_update_ha_state()
 
     @property
     def is_on(self):

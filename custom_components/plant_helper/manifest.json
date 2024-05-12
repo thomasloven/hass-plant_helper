@@ -3,7 +3,7 @@
   "name": "Plant Helper",
   "codeowners": ["@thomasloven"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["recorder"],
   "documentation": "https://github.com/thomasloven/hass-plant_helper",
   "integration_type": "helper",
   "iot_class": "calculated",
