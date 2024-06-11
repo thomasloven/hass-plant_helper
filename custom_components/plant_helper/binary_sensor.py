@@ -38,7 +38,7 @@ async def async_setup_entry(
     device_id = entry.options.get(CONF_DEVICE)
 
     if pid is not None:
-        entity = MiFloraPlantBinarySensor(hass, entry.options.get(CONF_NAME), entry.options, pid)
+        entity = MiFloraPlantBinarySensor(hass, entry, entry.options.get(CONF_NAME), entry.options, pid)
     else:
         entity = CustomPlantBinarySensor(hass, entry.options.get(CONF_NAME), entry.options)
 
@@ -147,10 +147,11 @@ class PlantBinarySensor(BinarySensorEntity):
     def _state_changed_event(self, event: Event[EventStateChangedData]):
         return self._state_changed(event.data["entity_id"], event.data["new_state"])
 
-    async def async_added_to_hass(self) -> None:
-        """When entity is added to hass."""
+    async def _update_listeners(self) -> None:
         for reading, rule in self.rules.items():
             if rule.get("entity") is None:
+                continue
+            if rule.get("listener") is not None:
                 continue
 
             if reading == READING_BRIGHTNESS:
@@ -162,6 +163,10 @@ class PlantBinarySensor(BinarySensorEntity):
 
             rule["listener"] = async_track_state_change_event(self.hass, rule["entity"], self._state_changed_event)
             self._state_changed(rule["entity"], self.hass.states.get(rule["entity"]))
+
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await self._update_listeners()
 
     async def will_remove_from_hass(self) -> None:
         """When entity is removed from hass."""
@@ -243,16 +248,16 @@ class CustomPlantBinarySensor(PlantBinarySensor):
         super().__init__(hass, name, rules)
 
 class MiFloraPlantBinarySensor(PlantBinarySensor):
-    def __init__(self, hass: HomeAssistant, name: str, config: dict[str, Any], pid: str):
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, name: str, config: dict[str, Any], pid: str):
 
         self.plant = None
 
         super().__init__(hass, name, {})
 
-        hass.async_add_executor_job(self._update_data, config, pid)
+        hass.async_add_executor_job(self._update_data, entry, config, pid)
 
 
-    def _update_data(self, config, pid):
+    def _update_data(self, entry: ConfigEntry, config, pid):
         device_id = config.get(CONF_DEVICE)
         rules = defaultdict(PlantRule)
         self.plant = plant = get_plant(self.hass, pid)
@@ -303,7 +308,7 @@ class MiFloraPlantBinarySensor(PlantBinarySensor):
         self._attr_entity_picture = get_photo(self.hass, pid)
 
         self.rules = rules
-        self._check_state()
+        entry.async_create_task(self.hass, self._update_listeners())
 
     @property
     def extra_state_attributes(self):
