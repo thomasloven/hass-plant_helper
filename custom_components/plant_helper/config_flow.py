@@ -8,7 +8,7 @@ from homeassistant.helpers import selector
 from homeassistant.config_entries import ConfigFlow, ConfigEntry, OptionsFlowWithConfigEntry
 
 from .plant_data import get_plant_options
-from .const import DOMAIN, CONF_DEVICE, CONF_PLANT, CONF_NAME, CONFIG_DETAILS, NONE_PLANT
+from .const import DOMAIN, CONF_DEVICE, CONF_PLANT, CONF_NAME, CONFIG_DETAILS, CONFIG_CHECKS, NONE_PLANT
 from .const import *
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ class MiFloraOptionsFlow(OptionsFlowWithConfigEntry):
                 self.options.pop(CONF_PLANT, None)
                 return await self.async_step_details()
 
-            return self.async_create_entry(data=self.options)
+            return await self.async_step_checks()
 
         return self.async_show_form(step_id="init", data_schema=data_schema)
 
@@ -90,9 +90,25 @@ class MiFloraOptionsFlow(OptionsFlowWithConfigEntry):
             for key in details_schema.schema:
                 if isinstance(key, vol.Optional) and key not in user_input:
                     self.options.pop(key, None)
-            return self.async_create_entry(data=self.options)
+            return await self.async_step_checks()
 
         return self.async_show_form(step_id="details", data_schema=details_schema)
+
+    async def async_step_checks(self, user_input: dict[str, Any]|None = None):
+        """Options for which measurements to include"""
+
+        if user_input is not None:
+            self.options.update(user_input)
+            return self.async_create_entry(data=self.options)
+
+        checks_schema = self.add_suggested_values_to_schema(
+            vol.Schema(
+                {vol.Optional(key): selector.BooleanSelector(selector.BooleanSelectorConfig()) for key in CONFIG_CHECKS}
+            ),
+            {key: True for key in CONFIG_CHECKS} | self.config_entry.options
+        )
+
+        return self.async_show_form(step_id="checks", data_schema=checks_schema)
 
 
 class MiFloraConfigFlow(ConfigFlow, domain=DOMAIN):

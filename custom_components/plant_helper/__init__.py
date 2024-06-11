@@ -21,13 +21,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, ("binary_sensor",))
 
-    photopath = get_photo_path(hass)
-    if photopath and os.path.isdir(photopath):
-        hass.http.register_static_path(PHOTOS_URL, photopath)
+    hass.async_add_executor_job(_register_photo_path, hass)
 
     entry.async_on_unload(entry.add_update_listener(config_entry_update_listener))
 
     return True
+
+def _register_photo_path(hass: HomeAssistant):
+    photopath = get_photo_path(hass)
+    if photopath and os.path.isdir(photopath):
+        hass.http.register_static_path(PHOTOS_URL, photopath)
 
 async def config_entry_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await hass.config_entries.async_reload(entry.entry_id)

@@ -26,6 +26,7 @@ class PlantRule(TypedDict):
     min: float | None = None
     max: float | None = None
     unit: str | None = None
+    check: bool = True
     listener: Callable|None = None
 
 async def async_setup_entry(
@@ -79,7 +80,9 @@ class PlantBinarySensor(BinarySensorEntity):
         for reading, rule in self.rules.items():
             if (value := self.values.get(reading)) is None:
                 continue
-            if value == STATE_UNAVAILABLE:
+            if not rule.get("check"):
+                problems[reading] = PROBLEM_NONE
+            elif value == STATE_UNAVAILABLE:
                 problems[reading] = "unavailable"
             elif value == STATE_UNKNOWN:
                 problems[reading] = "unknown"
@@ -201,12 +204,14 @@ class CustomPlantBinarySensor(PlantBinarySensor):
                     "min": config.get(CONF_MIN_MOISTURE),
                     "max": config.get(CONF_MAX_MOISTURE),
                     "unit": e.unit_of_measurement,
+                    "check": config.get(CONF_CHECK_MOISTURE, True),
                 }
             if e.original_device_class == SensorDeviceClass.BATTERY:
                 rules[READING_BATTERY] = {
                     "entity": e.entity_id,
                     "min": config.get(CONF_MIN_BATTERY_LEVEL),
                     "unit": e.unit_of_measurement,
+                    "check": config.get(CONF_CHECK_BATTERY, True),
                 }
             if e.original_device_class == SensorDeviceClass.TEMPERATURE:
                 rules[READING_TEMPERATURE] = {
@@ -214,6 +219,8 @@ class CustomPlantBinarySensor(PlantBinarySensor):
                     "min": config.get(CONF_MIN_TEMPERATURE),
                     "max": config.get(CONF_MAX_TEMPERATURE),
                     "unit": e.unit_of_measurement,
+                    "check": config.get(CONF_CHECK_TEMPERATURE, True),
+
                 }
             if e.unit_of_measurement == CONDUCTIVITY:
                 rules[READING_CONDUCTIVITY] = {
@@ -221,6 +228,8 @@ class CustomPlantBinarySensor(PlantBinarySensor):
                     "min": config.get(CONF_MIN_CONDUCTIVITY),
                     "max": config.get(CONF_MAX_CONDUCTIVITY),
                     "unit": e.unit_of_measurement,
+                    "check": config.get(CONF_CHECK_CONDUCTIVITY, True),
+
                 }
             if e.original_device_class == SensorDeviceClass.ILLUMINANCE:
                 rules[READING_BRIGHTNESS] = {
@@ -228,20 +237,27 @@ class CustomPlantBinarySensor(PlantBinarySensor):
                     "min": config.get(CONF_MIN_BRIGHTNESS),
                     "max": config.get(CONF_MAX_BRIGHTNESS),
                     "unit": e.unit_of_measurement,
+                    "check": config.get(CONF_CHECK_BRIGHTNESS, True),
                 }
 
         super().__init__(hass, name, rules)
 
 class MiFloraPlantBinarySensor(PlantBinarySensor):
     def __init__(self, hass: HomeAssistant, name: str, config: dict[str, Any], pid: str):
+
+        self.plant = None
+
+        super().__init__(hass, name, {})
+
+        hass.async_add_executor_job(self._update_data, config, pid)
+
+
+    def _update_data(self, config, pid):
         device_id = config.get(CONF_DEVICE)
         rules = defaultdict(PlantRule)
+        self.plant = plant = get_plant(self.hass, pid)
 
-        self.plant = plant = get_plant(hass, pid)
-        if plant is None:
-            pass
-
-        registry = er.async_get(hass)
+        registry = er.async_get(self.hass)
         entities = er.async_entries_for_device(registry, device_id)
         for e in entities:
             if e.original_device_class == SensorDeviceClass.MOISTURE:
@@ -250,12 +266,14 @@ class MiFloraPlantBinarySensor(PlantBinarySensor):
                     "min": int(plant.min_soil_moist),
                     "max": int(plant.max_soil_moist),
                     "unit": e.unit_of_measurement,
+                    "check": config.get(CONF_CHECK_MOISTURE, True),
                 }
             if e.original_device_class == SensorDeviceClass.BATTERY:
                 rules[READING_BATTERY] = {
                     "entity": e.entity_id,
                     "min": config.get(CONF_MIN_BATTERY_LEVEL, DEFAULT_MIN_BATTERY_LEVEL),
                     "unit": e.unit_of_measurement,
+                    "check": config.get(CONF_CHECK_BATTERY, True),
                 }
             if e.original_device_class == SensorDeviceClass.TEMPERATURE:
                 rules[READING_TEMPERATURE] = {
@@ -263,6 +281,7 @@ class MiFloraPlantBinarySensor(PlantBinarySensor):
                     "min": int(plant.min_temp),
                     "max": int(plant.max_temp),
                     "unit": e.unit_of_measurement,
+                    "check": config.get(CONF_CHECK_TEMPERATURE, True),
                 }
             if e.unit_of_measurement == CONDUCTIVITY:
                 rules[READING_CONDUCTIVITY] = {
@@ -270,6 +289,7 @@ class MiFloraPlantBinarySensor(PlantBinarySensor):
                     "min": int(plant.min_soil_ec),
                     "max": int(plant.max_soil_ec),
                     "unit": e.unit_of_measurement,
+                    "check": config.get(CONF_CHECK_CONDUCTIVITY, True),
                 }
             if e.original_device_class == SensorDeviceClass.ILLUMINANCE:
                 rules[READING_BRIGHTNESS] = {
@@ -277,11 +297,13 @@ class MiFloraPlantBinarySensor(PlantBinarySensor):
                     "min": int(plant.min_light_lux),
                     "max": int(plant.max_light_lux),
                     "unit": e.unit_of_measurement,
+                    "check": config.get(CONF_CHECK_BRIGHTNESS, True),
                 }
 
-        super().__init__(hass, name, rules)
+        self._attr_entity_picture = get_photo(self.hass, pid)
 
-        self._attr_entity_picture = get_photo(hass, pid)
+        self.rules = rules
+        self._check_state()
 
     @property
     def extra_state_attributes(self):

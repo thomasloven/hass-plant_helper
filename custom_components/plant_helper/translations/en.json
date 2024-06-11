@@ -62,6 +62,16 @@
           "max_brightness": "Brightness max (lux)",
           "min_battery": "Battery level min (%)"
         }
+      },
+      "checks": {
+        "description": "Choose which measures to include in status check:",
+        "data": {
+          "check_temperature": "Temperature",
+          "check_moisture": "Moisture",
+          "check_conductivity": "Conductivity",
+          "check_brightness": "Brightness",
+          "check_battery": "Battery"
+        }
       }
     }
   }
