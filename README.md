@@ -59,4 +59,8 @@ For copyright reasons, I cannot include the database in this repository, but it'
 
 If you have a plant that is not included in the database, or don't have the database installed. You can set max and min limits for any of the monitored conditions manually by going to the options for the new entity and deselecting the Species.
 
+From the options, you will also be able to select which measures to include in the compound status check - if e.g. you want to ignore the brightness measurement.
+
 ![custom settings](https://github.com/thomasloven/hass-plant_helper/assets/1299821/537d6b52-1290-4a47-8eb6-482fc60bd70e)
+
+![custom settings 2](https://github.com/thomasloven/hass-plant_helper/assets/1299821/706e9d40-a610-47c8-9314-b4483cb7176f)
