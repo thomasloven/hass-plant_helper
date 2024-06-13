@@ -5,7 +5,7 @@ import logging
 import datetime
 
 from homeassistant.core import HomeAssistant, callback, Event, State
-from homeassistant.const import STATE_UNKNOWN, STATE_UNAVAILABLE, CONDUCTIVITY
+from homeassistant.const import STATE_UNKNOWN, STATE_UNAVAILABLE, CONDUCTIVITY, UnitOfTemperature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -219,10 +219,16 @@ class CustomPlantBinarySensor(PlantBinarySensor):
                     "check": config.get(CONF_CHECK_BATTERY, True),
                 }
             if e.original_device_class == SensorDeviceClass.TEMPERATURE:
+                def convert(temp):
+                    if temp is None:
+                        return None
+                    if e.unit_of_measurement == UnitOfTemperature.FAHRENHEIT:
+                        return temp*1.8 + 32
+                    return temp
                 rules[READING_TEMPERATURE] = {
                     "entity": e.entity_id,
-                    "min": config.get(CONF_MIN_TEMPERATURE),
-                    "max": config.get(CONF_MAX_TEMPERATURE),
+                    "min": convert(config.get(CONF_MIN_TEMPERATURE)),
+                    "max": convert(config.get(CONF_MAX_TEMPERATURE)),
                     "unit": e.unit_of_measurement,
                     "check": config.get(CONF_CHECK_TEMPERATURE, True),
 
@@ -281,10 +287,16 @@ class MiFloraPlantBinarySensor(PlantBinarySensor):
                     "check": config.get(CONF_CHECK_BATTERY, True),
                 }
             if e.original_device_class == SensorDeviceClass.TEMPERATURE:
+                def convert(temp):
+                    if temp is None:
+                        return None
+                    if e.unit_of_measurement == UnitOfTemperature.FAHRENHEIT:
+                        return temp*1.8 + 32
+                    return temp
                 rules[READING_TEMPERATURE] = {
                     "entity": e.entity_id,
-                    "min": int(plant.min_temp),
-                    "max": int(plant.max_temp),
+                    "min": convert(int(plant.min_temp)),
+                    "max": convert(int(plant.max_temp)),
                     "unit": e.unit_of_measurement,
                     "check": config.get(CONF_CHECK_TEMPERATURE, True),
                 }
